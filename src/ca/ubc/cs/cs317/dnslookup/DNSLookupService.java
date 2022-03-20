@@ -172,15 +172,15 @@ public class DNSLookupService {
                     }
                 }
             }
-            if (newserver == null) { // if you dont find one additional queries are required to obtain the IP address of the nameserver at most MAX_QUERY_ATTEMPTS times
+            if (newserver == null) { // if you dont find an ipv4...
                 ResourceRecord nslistrr = nslist.iterator().next();
                 DNSQuestion newquestion = new DNSQuestion(nslistrr.getTextResult(),
                         RecordType.A, nslistrr.getRecordClass());
-                iterativeQuery(newquestion, nameServer);
+                iterativeQuery(newquestion, nameServer); // ... additional queries are required to obtain the IP address of the nameserver at most MAX_QUERY_ATTEMPTS times
                 List<ResourceRecord> newcached = cache.getCachedResults(newquestion, true);
                 for(ResourceRecord newcachedrr: newcached) {
                     if (newcachedrr.getRecordType() == newquestion.getRecordType()) { // if both type A
-                        newserver = newcachedrr.getInetResult(); // then update newserver
+                        newserver = newcachedrr.getInetResult(); // then you found an ipv4. break.
                         break;
                     }
                 }
@@ -226,16 +226,16 @@ public class DNSLookupService {
                 try {
                     socket.receive(receivedpacket);
                     response = new DNSMessage(receivedbuffer, receivedbuffer.length);
-                    while (response.getID() != query.getID() || !response.getQR()) {
+                    while (response.getID() != query.getID() || !response.getQR()) { // while response's wrong id/not response, ignore.
                         response = null;
-                        socket.receive(receivedpacket);
-                        response = new DNSMessage(receivedbuffer, receivedbuffer.length);
+                        socket.receive(receivedpacket); // try to receive again.
+                        response = new DNSMessage(receivedbuffer, receivedbuffer.length); // update response.
                         }
-                    if (response.getID() == query.getID() && response.getQR()) {
+                    if (response.getID() == query.getID() && response.getQR()) { // once we get correct id, stpo trying to receive.
                         break;
                     }
                 } catch (SocketTimeoutException e) {
-                    response = null;
+                    response = null; // if timeoutexception, resend.
                 }
             } catch (IOException e) {
                 e.printStackTrace();
